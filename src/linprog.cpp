@@ -78,6 +78,19 @@ public:
             std::fill(model.lp_.col_lower_.begin(), model.lp_.col_lower_.end(), -kHighsInf);
             std::fill(model.lp_.col_upper_.begin(), model.lp_.col_upper_.end(), kHighsInf);
         }
+        
+        model.lp_.integrality_.resize(nx);
+        if (inputs.size() > 4)
+        {
+            matlab::data::TypedArray<bool> integrality = std::move(inputs[4]);
+            if (integrality.getNumberOfElements() != nx)
+                utilities::error("integrality must be a {} x 1 array.",nx);
+            std::transform(integrality.cbegin(), integrality.cend(), model.lp_.integrality_.begin(), [](const bool &val) { return val ? HighsVarType::kInteger : HighsVarType::kContinuous; });
+        }
+        else {
+            std::fill(model.lp_.integrality_.begin(), model.lp_.integrality_.end(), HighsVarType::kContinuous);
+        }
+
 
         Highs highs;
         HighsStatus status = highs.passModel(model);
@@ -89,10 +102,7 @@ public:
         if (status != HighsStatus::kOk)
             utilities::error("Failed to solve the problem.");
         
-        const HighsModelStatus &model_status = highs.getModelStatus();
-        if (model_status != HighsModelStatus::kOptimal)
-            utilities::error("Failed to solve the problem.");
-     
+        const HighsModelStatus &model_status = highs.getModelStatus();   
         const HighsInfo &info = highs.getInfo();
         const HighsSolution &solution = highs.getSolution();
         const HighsBasis& basis = highs.getBasis();
@@ -108,12 +118,13 @@ public:
         }
 
         if (outputs.size() > 2) {
-            matlab::data::StructArray infoStruct = factory.createStructArray({1, 1}, {"column_dual", "column_status", "row_dual", "row_status", "row_value"});
+            matlab::data::StructArray infoStruct = factory.createStructArray({1, 1}, {"column_dual", "column_status", "row_dual", "row_status", "row_value", "status"});
             matlab::data::TypedArray<double> column_dual = factory.createArray<double>({nx, 1});
             matlab::data::TypedArray<matlab::data::MATLABString> column_status = factory.createArray<matlab::data::MATLABString>({nx, 1});
             matlab::data::TypedArray<double> row_dual = factory.createArray<double>({nc, 1});
             matlab::data::TypedArray<double> row_value = factory.createArray<double>({nc, 1});
             matlab::data::TypedArray<matlab::data::MATLABString> row_status = factory.createArray<matlab::data::MATLABString>({nc, 1});
+            matlab::data::TypedArray<matlab::data::MATLABString> status = factory.createScalar(highs.modelStatusToString(model_status));
             std::copy(solution.col_dual.begin(), solution.col_dual.end(), column_dual.begin());
             std::copy(solution.row_value.cbegin(), solution.row_value.cend(), row_value.begin());
             std::copy(solution.row_dual.cbegin(), solution.row_dual.cend(), row_dual.begin());
@@ -125,6 +136,7 @@ public:
             infoStruct[0]["row_dual"] = std::move(row_dual);
             infoStruct[0]["row_status"] = std::move(row_status);
             infoStruct[0]["row_value"] = std::move(row_value);
+            infoStruct[0]["status"] = std::move(status);
             outputs[2] = std::move(infoStruct);
         }
     }
