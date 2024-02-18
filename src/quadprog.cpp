@@ -88,18 +88,6 @@ public:
             std::fill(model.lp_.col_lower_.begin(), model.lp_.col_lower_.end(), -kHighsInf);
             std::fill(model.lp_.col_upper_.begin(), model.lp_.col_upper_.end(), kHighsInf);
         }
-        
-        model.lp_.integrality_.resize(nx);
-        if (inputs.size() > 5)
-        {
-            matlab::data::TypedArray<bool> integrality = std::move(inputs[5]);
-            if (integrality.getNumberOfElements() != nx)
-                utilities::error("integrality must be a {} x 1 array.",nx);
-            std::transform(integrality.cbegin(), integrality.cend(), model.lp_.integrality_.begin(), [](const bool &val) { return val ? HighsVarType::kInteger : HighsVarType::kContinuous; });
-        }
-        else {
-            std::fill(model.lp_.integrality_.begin(), model.lp_.integrality_.end(), HighsVarType::kContinuous);
-        }
 
         Highs highs;
         HighsStatus status = highs.passModel(model);
