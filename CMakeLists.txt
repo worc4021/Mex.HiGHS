@@ -20,7 +20,21 @@ matlab_add_mex(
         highs::highs
     R2018a
 )
+
 set_property(TARGET highs_lp PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+matlab_add_mex(
+    NAME highs_qp
+    SRC src/quadprog.cpp
+    OUTPUT_NAME highs_qp
+    LINK_TO 
+        MexUtilities::MexUtilities  
+        highs::highs
+    R2018a
+)
+
+set_property(TARGET highs_qp PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 include(CTest)

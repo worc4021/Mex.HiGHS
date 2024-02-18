@@ -102,6 +102,24 @@ classdef highstest < matlab.unittest.TestCase
                 testCase.verifyEqual(fVal,fval);
             end
         end
+
+        function qp_test(testCase)
+            H = [1 -1; -1 2]; 
+            f = [-2; -6];
+            A = [1 1; -1 2; 2 1];
+            b = [2; 2; 3];
+            [x,fVal,info] = highs_qp(tril(H),f,A,[-inf(3,1),b]);
+            
+            testCase.verifyEqual(info.status,"Optimal");
+
+            if license('test','optimization_toolbox')
+                options = optimoptions('quadprog','Display','none');
+                [xmatlab,fval] = ...
+                    quadprog(H,f,A,b,[],[],[],[],[],options);
+                testCase.verifyLessThan(abs(fVal-fval),1e-9);
+                testCase.verifyLessThan(norm(x-xmatlab),1e-9);
+            end
+        end
     end
 
 end
